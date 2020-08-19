@@ -14,14 +14,14 @@ namespace champ
   // Hash-Array Mapped Tries' by Michael J. Steindorfer and Jurgen J. Vinju
   // (https://arxiv.org/pdf/1608.01036.pdf).
 
-  static constexpr size_t index_mask_bits = 5;
+  static constexpr size_t index_mask_bits = 10;
   static constexpr size_t index_mask = (1 << index_mask_bits) - 1;
 
   using Hash = uint32_t;
-  static constexpr size_t hash_bits = sizeof(Hash) * 8;
+  static constexpr size_t hash_bits = sizeof(Hash) * 16;
 
   using SmallIndex = uint8_t;
-  static constexpr size_t small_index_bits = sizeof(SmallIndex) * 8;
+  static constexpr size_t small_index_bits = sizeof(SmallIndex) * 16;
   static_assert(small_index_bits > index_mask_bits);
 
   static constexpr size_t collision_node_bits = hash_bits % index_mask_bits;

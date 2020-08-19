@@ -2652,6 +2652,12 @@ void Replica::execute_committed(bool was_f_0)
               pp->seqno());
             return;
           }
+
+          if (info.did_exec_gov_req)
+          {
+            gov_req_track.update(pp->seqno());
+          }
+
           last_te_version = ledger_writer->write_pre_prepare(pp);
           PBFT_ASSERT(
             last_executed + 1 == last_tentative_execute,
