@@ -20,6 +20,7 @@ Pre_prepare::Pre_prepare(
   Req_queue& reqs,
   size_t& requests_in_batch,
   uint64_t nonce_,
+  Digest& last_snapshot_digest,
   Prepared_cert* prepared_cert) :
   Message(
     Pre_prepare_tag,
@@ -35,6 +36,7 @@ Pre_prepare::Pre_prepare(
 {
   rep().view = v;
   rep().seqno = s;
+  rep().last_snapshot_digest = last_snapshot_digest;
   rep().replicated_state_merkle_root.fill(0);
   rep().last_gov_req_updated = 0;
   rep().flags.should_reorder = true;
@@ -255,6 +257,7 @@ bool Pre_prepare::calculate_digest(Digest& d)
     d.update_last(context, (char*)&rep().flags, sizeof(short));
     d.update_last(context, (char*)&rep().last_gov_req_updated, sizeof(Seqno));
     d.update_last(context, (char*)&rep().hashed_nonce, sizeof(uint64_t));
+    d.update_last(context, (char*)&rep().last_snapshot_digest, sizeof(Digest));
     d.update_last(context, (char*)&rep().ctx, sizeof(rep().ctx));
     d.update_last(context, (char*)&rep().rset_size, sizeof(rep().rset_size));
     d.update_last(context, (char*)&rep().n_big_reqs, sizeof(rep().n_big_reqs));

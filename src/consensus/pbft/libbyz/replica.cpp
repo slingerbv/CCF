@@ -54,7 +54,7 @@ Replica::Replica(
   pbft::RequestsMap& pbft_requests_map_,
   pbft::PrePreparesMap& pbft_pre_prepares_map_,
   ccf::Signatures& signatures,
-  pbft::PbftStore& store) :
+  pbft::PbftStore& store_) :
   Node(node_info),
   rqueue(),
   plog(max_out),
@@ -68,6 +68,7 @@ Replica::Replica(
   rep_cb(nullptr),
   global_commit_cb(nullptr),
   entropy(tls::create_entropy()),
+  store(store_),
   state(
     this,
     mem,
@@ -162,8 +163,8 @@ Replica::Replica(
   exec_command = nullptr;
 
   ledger_writer =
-    std::make_unique<LedgerWriter>(store, pbft_pre_prepares_map, signatures);
-  encryptor = store.get_encryptor();
+    std::make_unique<LedgerWriter>(store_, pbft_pre_prepares_map, signatures);
+  encryptor = store_.get_encryptor();
 }
 
 void Replica::register_exec(ExecCommand e, ReceiptOps* r)
@@ -929,7 +930,13 @@ void Replica::send_pre_prepare(bool do_not_wait_for_batch_size)
       ps = &plog.fetch(next_pp_seqno - congestion_window);
     }
     Pre_prepare* pp = new Pre_prepare(
-      view(), next_pp_seqno, rqueue, ctx->requests_in_batch, ctx->nonce, ps);
+      view(),
+      next_pp_seqno,
+      rqueue,
+      ctx->requests_in_batch,
+      ctx->nonce,
+      last_snapshot_digest,
+      ps);
 
     auto fn = [](
                 Pre_prepare* pp,
@@ -974,6 +981,7 @@ void Replica::send_pre_prepare(bool do_not_wait_for_batch_size)
           self->last_te_version = self->ledger_writer->write_pre_prepare(pp);
         }
         self->send_prepare(self->next_pp_seqno, info);
+
       }
       else
       {
@@ -988,6 +996,20 @@ void Replica::send_pre_prepare(bool do_not_wait_for_batch_size)
         if (self->ledger_writer)
         {
           self->last_te_version = self->ledger_writer->write_pre_prepare(pp);
+        }
+
+        if (pp->seqno() % self->snapshot_interval == 0)
+        {
+          Digest d;
+          Digest::Context context;
+          auto snapshots = self->store.snapshot(pp->get_ctx());
+          for (auto& snapshot : snapshots)
+          {
+            auto buffer = snapshot->get_buffer();
+            d.update_last(context, (const char*)buffer.data(), buffer.size());
+          }
+
+          self->last_snapshot_digest = d;
         }
       }
       self->try_send_prepare();
@@ -1222,6 +1244,20 @@ void Replica::send_prepare(Seqno seqno, std::optional<ByzInfo> byz_info)
           self->last_te_version = self->ledger_writer->write_pre_prepare(pp);
         }
         self->send_responses(pp);
+
+        if (pp->seqno() % self->snapshot_interval == 0)
+        {
+          Digest d;
+          Digest::Context context;
+          auto snapshots = self->store.snapshot(pp->get_ctx());
+          for (auto& snapshot : snapshots)
+          {
+            auto buffer = snapshot->get_buffer();
+            d.update_last(context, (const char*)buffer.data(), buffer.size());
+          }
+
+          self->last_snapshot_digest = d;
+        }
       };
 
       auto msg = std::make_unique<ExecTentativeCbCtx>();
@@ -3277,8 +3313,9 @@ void Replica::send_null()
       }
 
       uint64_t nonce = entropy->random64();
+      Digest d;
       Pre_prepare* pp = new Pre_prepare(
-        view(), next_pp_seqno, empty, requests_in_batch, nonce, ps);
+        view(), next_pp_seqno, empty, requests_in_batch, nonce, d, ps);
       pp->set_digest();
       send(pp, All_replicas);
       plog.fetch(next_pp_seqno).add_mine(pp);

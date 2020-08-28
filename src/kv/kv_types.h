@@ -352,12 +352,13 @@ namespace kv
     public:
       void add_snapshot(std::unique_ptr<kv::AbstractMapSnapshot> snapshot)
       {
+        auto foobar = snapshot->get_buffer();
         snapshots.push_back(std::move(snapshot));
       }
 
-      std::vector<std::unique_ptr<kv::AbstractMapSnapshot>>& get_snapshots()
+      std::vector<std::unique_ptr<kv::AbstractMapSnapshot>> get_snapshots()
       {
-        return snapshots;
+        return std::move(snapshots);
       }
     };
 

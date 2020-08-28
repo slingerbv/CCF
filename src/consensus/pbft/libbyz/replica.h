@@ -338,6 +338,10 @@ private:
   std::array<std::unique_ptr<ExecCommandMsg>, Max_requests_in_batch>
     vec_exec_cmds;
 
+  pbft::PbftStore& store;
+  Digest last_snapshot_digest;
+  uint64_t snapshot_interval = 200;
+
   bool create_execute_commands(
     Pre_prepare* pp,
     int64_t& max_local_commit_value,

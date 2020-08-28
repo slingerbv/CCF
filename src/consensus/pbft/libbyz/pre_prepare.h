@@ -41,6 +41,7 @@ struct Pre_prepare_rep : public Message_rep
                // the contents are opaque
   Digest digest; // digest of request set concatenated with
                  // big reqs and non-deterministic choices
+  Digest last_snapshot_digest;
   int rset_size; // size in bytes of request set
   short n_big_reqs; // number of big requests
 
@@ -84,6 +85,7 @@ public:
     Req_queue& reqs,
     size_t& requests_in_batch,
     uint64_t nonce,
+    Digest& last_snapshot_digest,
     Prepared_cert* prepared_cert = nullptr);
   // Effects: Creates a new signed Pre_prepare message with view
   // number "v", sequence number "s", the requests in "reqs" (up to a
