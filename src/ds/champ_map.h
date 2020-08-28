@@ -2,7 +2,7 @@
 // Licensed under the Apache 2.0 License.
 #pragma once
 
-#include "ds/ccf_assert.h"
+//#include "ds/ccf_assert.h"
 #include "ds/serialized.h"
 
 #include <algorithm>
@@ -10,6 +10,7 @@
 #include <memory>
 #include <optional>
 #include <vector>
+#include <functional>
 
 namespace champ
 {
@@ -482,7 +483,7 @@ namespace champ
         add_padding(value_size, data, size);
       }
 
-      CCF_ASSERT_FMT(size == 0, "buffer not filled, remaining:{}", size);
+      //CCF_ASSERT_FMT(size == 0, "buffer not filled, remaining:{}", size);
     }
 
     const std::vector<uint8_t>& get_buffer() const
