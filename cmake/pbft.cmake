@@ -153,16 +153,16 @@ if("virtual" IN_LIST COMPILE_TARGETS)
   pbft_add_executable(pbft_controller_test)
 
   # Unit tests
-  add_unit_test(
-    ledger_replay_test
-    ${CMAKE_SOURCE_DIR}/src/consensus/pbft/libbyz/test/test_ledger_replay.cpp
-  )
-  target_include_directories(
-    ledger_replay_test
-    PRIVATE ${CMAKE_SOURCE_DIR}/src/consensus/pbft/libbyz/test/mocks
-  )
-  target_link_libraries(ledger_replay_test PRIVATE libcommontest.mock)
-  use_libbyz(ledger_replay_test)
-  add_san(ledger_replay_test)
-  set_property(TEST ledger_replay_test PROPERTY LABELS pbft)
+  #add_unit_test(
+  #  ledger_replay_test
+  #  ${CMAKE_SOURCE_DIR}/src/consensus/pbft/libbyz/test/test_ledger_replay.cpp
+  #)
+  #target_include_directories(
+  #  ledger_replay_test
+  #  PRIVATE ${CMAKE_SOURCE_DIR}/src/consensus/pbft/libbyz/test/mocks
+  #)
+  #target_link_libraries(ledger_replay_test PRIVATE libcommontest.mock)
+  #use_libbyz(ledger_replay_test)
+  #add_san(ledger_replay_test)
+  #set_property(TEST ledger_replay_test PROPERTY LABELS pbft)
 endif()

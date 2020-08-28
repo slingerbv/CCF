@@ -431,16 +431,16 @@ if(BUILD_TESTS)
     LINK_LIBS ccfcrypto.host evercrypt.host secp256k1.host
     INCLUDE_DIRS ${EVERCRYPT_INC}
   )
-  add_picobench(
-    history_bench
-    SRCS src/node/test/history_bench.cpp
-    LINK_LIBS ccfcrypto.host evercrypt.host secp256k1.host
-    INCLUDE_DIRS ${EVERCRYPT_INC}
-  )
-  add_picobench(
-    kv_bench SRCS src/kv/test/kv_bench.cpp src/crypto/symmetric_key.cpp
-                  src/enclave/thread_local.cpp
-  )
+  #add_picobench(
+  #  history_bench
+  #  SRCS src/node/test/history_bench.cpp
+  #  LINK_LIBS ccfcrypto.host evercrypt.host secp256k1.host
+  #  INCLUDE_DIRS ${EVERCRYPT_INC}
+  #)
+  #add_picobench(
+  #  kv_bench SRCS src/kv/test/kv_bench.cpp src/crypto/symmetric_key.cpp
+  #                src/enclave/thread_local.cpp
+  #)
 
   # Storing signed governance operations
   add_e2e_test(

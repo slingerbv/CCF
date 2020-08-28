@@ -46,6 +46,7 @@ namespace pbft
       Term* term = nullptr,
       ccf::Store::Tx* tx = nullptr) = 0;
     virtual void compact(Index v) = 0;
+    virtual std::vector<std::unique_ptr<kv::AbstractMapSnapshot>>& snapshot(kv::Version v) = 0;
     virtual void rollback(Index v) = 0;
     virtual kv::Version current_version() = 0;
     virtual kv::Version commit_pre_prepare(
@@ -169,6 +170,16 @@ namespace pbft
       {
         p->compact(v);
       }
+    }
+
+    std::vector<std::unique_ptr<kv::AbstractMapSnapshot>>& snapshot(kv::Version v)
+    {
+      auto p = x.lock();
+      if (p)
+      {
+        return p->snapshot(v)->get_snapshots();
+      }
+      throw std::logic_error("Should not be here");
     }
 
     void rollback(Index v)

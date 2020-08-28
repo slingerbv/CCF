@@ -195,6 +195,133 @@ namespace kv
       return store;
     }
 
+    class Snapshot : public AbstractMapSnapshot
+    {
+    private:
+      std::string name;
+      const SecurityDomain security_domain;
+      const bool replicated;
+      champ::Snapshot<K, VersionV, H> map_snapshot;
+
+    public:
+      Snapshot(
+        std::string name_,
+        SecurityDomain security_domain_,
+        bool replicated_,
+        champ::Snapshot<K, VersionV, H>&& map_snapshot_) :
+        name(name_),
+        security_domain(security_domain_),
+        replicated(replicated_),
+        map_snapshot(std::move(map_snapshot_))
+      {}
+
+      std::vector<uint8_t> get_buffer() override
+      {
+        return map_snapshot.get_buffer();
+      }
+
+      std::string& get_name() override
+      {
+        return name;
+      }
+
+      SecurityDomain get_security_domain() override
+      {
+        return security_domain;
+      }
+
+      bool get_is_replicated() override
+      {
+        return replicated;
+      }
+    };
+
+    std::unique_ptr<AbstractMapSnapshot> snapshot(Version v) override
+    {
+      auto r = roll->get_head();
+      while (r != nullptr)
+      {
+        if (v < r->version)
+        {
+          break;
+        }
+        r = r->next;
+      }
+
+      if (r == nullptr)
+      {
+        r = roll->get_tail();
+      }
+      else if (r->prev != nullptr)
+      {
+        r = r->prev;
+      }
+
+      std::function<uint32_t(const K& key)> k_size =
+        [](const K& key) {
+          return sizeof(uint64_t) + sizeof(K);
+        };
+
+      std::function<uint32_t(
+        const K& key, uint8_t*& data, size_t& size)>
+        k_serialize = [](
+                        const K& key,
+                        uint8_t*& data,
+                        size_t& size) {
+          //uint64_t key_size = key.size();
+          uint64_t key_size = sizeof(K);
+          serialized::write(
+            data,
+            size,
+            reinterpret_cast<const uint8_t*>(&key_size),
+            sizeof(uint64_t));
+          serialized::write(
+            data, size, reinterpret_cast<const uint8_t*>(&key), key_size);
+          return sizeof(uint64_t) + key_size;
+        };
+
+      std::function<uint32_t(const VersionV& value)>
+        v_size = [](const VersionV& value) {
+          return sizeof(uint64_t) + sizeof(value.version) + sizeof(value.value);
+        };
+
+      std::function<uint32_t(
+        const VersionV& value,
+        uint8_t*& data,
+        size_t& size)>
+        v_serialize = [](
+                        const VersionV& value,
+                        uint8_t*& data,
+                        size_t& size) {
+          uint64_t value_size = sizeof(value.version) + sizeof(value.value);
+          serialized::write(
+            data,
+            size,
+            reinterpret_cast<const uint8_t*>(&value_size),
+            sizeof(uint64_t));
+          serialized::write(
+            data,
+            size,
+            reinterpret_cast<const uint8_t*>(&value.version),
+            sizeof(value.version));
+          serialized::write(
+            data,
+            size,
+            reinterpret_cast<const uint8_t*>(&value.value),
+            sizeof(value.value));
+          return sizeof(uint64_t) + sizeof(value.version) + sizeof(value.value);
+        };
+
+      champ::Snapshot<
+        K,
+        VersionV,
+        H>
+        snapshot(r->state, k_size, k_serialize, v_size, v_serialize);
+
+      return std::move(std::make_unique<Snapshot>(
+        name, security_domain, replicated, std::move(snapshot)));
+    }
+
     /** Set handler to be called on local transaction commit
      *
      * @param hook function to be called on local transaction commit
@@ -1560,6 +1687,39 @@ namespace kv
       for (auto& map : maps)
         map.second->post_compact();
     }
+
+    std::unique_ptr<Snapshot> snapshot(Version v) override
+    {
+      std::lock_guard<SpinLock> mguard(maps_lock);
+
+      if (v > current_version())
+      {
+        throw std::logic_error(fmt::format(
+          "Attempting to snapshot at invalid version v:{}, current_version:{}",
+          v,
+          current_version()));
+      }
+
+      auto snapshot = std::make_unique<Snapshot>();
+
+      for (auto& map : maps)
+      {
+        map.second->lock();
+      }
+
+      for (auto& map : maps)
+      {
+        snapshot->add_snapshot(std::move(map.second->snapshot(v)));
+      }
+
+      for (auto& map : maps)
+      {
+        map.second->unlock();
+      }
+
+      return std::move(snapshot);
+    }
+
 
     void rollback(Version v) override
     {

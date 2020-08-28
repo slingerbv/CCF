@@ -10,15 +10,15 @@ add_custom_target(
                           ${CCF_GENERATED_DIR}/large_payload_generated.h
 )
 
-add_picobench(
-  small_bank_serdes_bench
-  SRCS ${CMAKE_CURRENT_LIST_DIR}/fbs/tests/small_bank_serdes_bench.cpp
-       src/crypto/symmetric_key.cpp src/enclave/thread_local.cpp
-  INCLUDE_DIRS ${CMAKE_CURRENT_LIST_DIR}/fbs ${CCF_GENERATED_DIR}
-               ${CMAKE_CURRENT_LIST_DIR} ${EVERCRYPT_INC}
-  LINK_LIBS ccfcrypto.host evercrypt.host secp256k1.host
-)
-add_dependencies(small_bank_serdes_bench flatbuffers)
+#add_picobench(
+#  small_bank_serdes_bench
+#  SRCS ${CMAKE_CURRENT_LIST_DIR}/fbs/tests/small_bank_serdes_bench.cpp
+#       src/crypto/symmetric_key.cpp src/enclave/thread_local.cpp
+#  INCLUDE_DIRS ${CMAKE_CURRENT_LIST_DIR}/fbs ${CCF_GENERATED_DIR}
+#               ${CMAKE_CURRENT_LIST_DIR} ${EVERCRYPT_INC}
+#  LINK_LIBS ccfcrypto.host evercrypt.host secp256k1.host
+#)
+#add_dependencies(small_bank_serdes_bench flatbuffers)
 
 add_client_exe(
   small_bank_client

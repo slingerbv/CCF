@@ -331,9 +331,36 @@ namespace kv
       Version version, const std::vector<uint8_t>& raw_ledger_key) = 0;
   };
 
+  class AbstractMapSnapshot
+  {
+  public:
+    virtual ~AbstractMapSnapshot() = default;
+    virtual std::vector<uint8_t> get_buffer() = 0;
+    virtual std::string& get_name() = 0;
+    virtual SecurityDomain get_security_domain() = 0;
+    virtual bool get_is_replicated() = 0;
+  };
+
   class AbstractStore
   {
   public:
+    class Snapshot
+    {
+    private:
+      std::vector<std::unique_ptr<kv::AbstractMapSnapshot>> snapshots;
+
+    public:
+      void add_snapshot(std::unique_ptr<kv::AbstractMapSnapshot> snapshot)
+      {
+        snapshots.push_back(std::move(snapshot));
+      }
+
+      std::vector<std::unique_ptr<kv::AbstractMapSnapshot>>& get_snapshots()
+      {
+        return snapshots;
+      }
+    };
+
     virtual ~AbstractStore() {}
     virtual Version next_version() = 0;
     virtual Version current_version() = 0;
@@ -346,6 +373,7 @@ namespace kv
       bool public_only = false,
       Term* term = nullptr) = 0;
     virtual void compact(Version v) = 0;
+    virtual std::unique_ptr<Snapshot> snapshot(Version v) = 0;
     virtual void rollback(Version v) = 0;
     virtual CommitSuccess commit(
       Version v,
@@ -383,6 +411,7 @@ namespace kv
     virtual AbstractStore* get_store() = 0;
     virtual AbstractTxView<S, D>* create_view(Version version) = 0;
     virtual void compact(Version v) = 0;
+    virtual std::unique_ptr<AbstractMapSnapshot> snapshot(Version v) = 0;
     virtual void post_compact() = 0;
     virtual void rollback(Version v) = 0;
     virtual void lock() = 0;
